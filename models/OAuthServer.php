@@ -20,6 +20,7 @@ class OAuthServer
 	private string $authPassword;
 
 	private const ACCESS_TOKEN_TTL = 3600;
+	private const CLIENT_CREDENTIALS_TOKEN_TTL = 3600;
 
 	/**
 	 * OAuth endpoints served by this server.
@@ -137,8 +138,8 @@ class OAuthServer
 			'token_endpoint' => $this->baseUrl . '/token',
 			'registration_endpoint' => $this->baseUrl . '/register',
 			'response_types_supported' => ['code'],
-			'grant_types_supported' => ['authorization_code', 'refresh_token'],
-			'token_endpoint_auth_methods_supported' => ['none'],
+			'grant_types_supported' => ['authorization_code', 'client_credentials', 'refresh_token'],
+			'token_endpoint_auth_methods_supported' => ['none', 'client_secret_post', 'client_secret_basic'],
 			'code_challenge_methods_supported' => ['S256'],
 		];
 
@@ -151,24 +152,51 @@ class OAuthServer
 	{
 		$body = json_decode($request->getBody()->getContents(), true);
 
-		if (!$body || !isset($body['redirect_uris']) || !is_array($body['redirect_uris']) || empty($body['redirect_uris']))
+		if (!$body)
 		{
 			return new HttpResponse(400, ['Content-Type' => 'application/json'], json_encode([
 				'error' => 'invalid_client_metadata',
-				'error_description' => 'redirect_uris is required and must be a non-empty array',
+				'error_description' => 'Invalid request body',
+			]));
+		}
+
+		$grantTypes = $body['grant_types'] ?? ['authorization_code'];
+		$authMethod = $body['token_endpoint_auth_method'] ?? 'none';
+		$isClientCredentials = in_array('client_credentials', $grantTypes, true);
+
+		// redirect_uris is required for authorization_code grant, optional for client_credentials
+		if (!$isClientCredentials && (!isset($body['redirect_uris']) || !is_array($body['redirect_uris']) || empty($body['redirect_uris'])))
+		{
+			return new HttpResponse(400, ['Content-Type' => 'application/json'], json_encode([
+				'error' => 'invalid_client_metadata',
+				'error_description' => 'redirect_uris is required and must be a non-empty array for authorization_code grant',
 			]));
 		}
 
 		$clientId = bin2hex(random_bytes(16));
+		$clientSecret = null;
+
+		// Generate client_secret for confidential clients
+		if ($isClientCredentials || in_array($authMethod, ['client_secret_post', 'client_secret_basic'], true))
+		{
+			$clientSecret = bin2hex(random_bytes(32));
+			$authMethod = $authMethod === 'none' ? 'client_secret_post' : $authMethod;
+		}
+
 		$client = [
 			'client_id' => $clientId,
 			'client_name' => $body['client_name'] ?? 'Unknown Client',
-			'redirect_uris' => $body['redirect_uris'],
-			'grant_types' => $body['grant_types'] ?? ['authorization_code'],
+			'redirect_uris' => $body['redirect_uris'] ?? [],
+			'grant_types' => $grantTypes,
 			'response_types' => $body['response_types'] ?? ['code'],
-			'token_endpoint_auth_method' => $body['token_endpoint_auth_method'] ?? 'none',
+			'token_endpoint_auth_method' => $authMethod,
 			'created_at' => time(),
 		];
+
+		if ($clientSecret !== null)
+		{
+			$client['client_secret'] = password_hash($clientSecret, PASSWORD_BCRYPT);
+		}
 
 		$this->storage->saveClient($client);
 
@@ -180,6 +208,11 @@ class OAuthServer
 			'response_types' => $client['response_types'],
 			'token_endpoint_auth_method' => $client['token_endpoint_auth_method'],
 		];
+
+		if ($clientSecret !== null)
+		{
+			$response['client_secret'] = $clientSecret;
+		}
 
 		return new HttpResponse(201, ['Content-Type' => 'application/json'], json_encode($response, JSON_UNESCAPED_SLASHES));
 	}
@@ -324,14 +357,37 @@ class OAuthServer
 			$body = json_decode($request->getBody()->getContents(), true) ?? [];
 		}
 
+		// Extract client credentials from Authorization header (client_secret_basic)
+		$authHeader = $request->getHeaderLine('Authorization');
+		if (!empty($authHeader) && str_starts_with($authHeader, 'Basic '))
+		{
+			// RFC 6749 Section 2.3.1: Clients MUST NOT use more than one auth method
+			if (!empty($body['client_secret']))
+			{
+				return new HttpResponse(400, ['Content-Type' => 'application/json'], json_encode([
+					'error' => 'invalid_request',
+					'error_description' => 'Multiple client authentication methods are not allowed',
+				]));
+			}
+
+			$decoded = base64_decode(substr($authHeader, 6), true);
+			if ($decoded !== false && str_contains($decoded, ':'))
+			{
+				[$basicClientId, $basicClientSecret] = explode(':', $decoded, 2);
+				$body['client_id'] = urldecode($basicClientId);
+				$body['client_secret'] = urldecode($basicClientSecret);
+			}
+		}
+
 		$grantType = $body['grant_type'] ?? '';
 
 		return match ($grantType) {
 			'authorization_code' => $this->handleAuthorizationCodeGrant($body),
+			'client_credentials' => $this->handleClientCredentialsGrant($body),
 			'refresh_token' => $this->handleRefreshTokenGrant($body),
 			default => new HttpResponse(400, ['Content-Type' => 'application/json'], json_encode([
 				'error' => 'unsupported_grant_type',
-				'error_description' => 'Supported grant types: authorization_code, refresh_token',
+				'error_description' => 'Supported grant types: authorization_code, client_credentials, refresh_token',
 			])),
 		};
 	}
@@ -415,6 +471,67 @@ class OAuthServer
 			'token_type' => 'Bearer',
 			'expires_in' => self::ACCESS_TOKEN_TTL,
 			'refresh_token' => $refreshToken,
+		]));
+	}
+
+	private function handleClientCredentialsGrant(array $body): HttpResponse
+	{
+		$clientId = $body['client_id'] ?? '';
+		$clientSecret = $body['client_secret'] ?? '';
+
+		if (empty($clientId) || empty($clientSecret))
+		{
+			return new HttpResponse(400, ['Content-Type' => 'application/json'], json_encode([
+				'error' => 'invalid_request',
+				'error_description' => 'Missing required parameters: client_id, client_secret',
+			]));
+		}
+
+		// Validate client
+		$client = $this->storage->getClient($clientId);
+		if ($client === null)
+		{
+			return new HttpResponse(401, ['Content-Type' => 'application/json'], json_encode([
+				'error' => 'invalid_client',
+				'error_description' => 'Unknown client_id',
+			]));
+		}
+
+		// Verify client_credentials grant is allowed
+		if (!in_array('client_credentials', $client['grant_types'] ?? [], true))
+		{
+			return new HttpResponse(400, ['Content-Type' => 'application/json'], json_encode([
+				'error' => 'unauthorized_client',
+				'error_description' => 'Client is not authorized for client_credentials grant',
+			]));
+		}
+
+		// Verify client_secret
+		if (!isset($client['client_secret']) || !password_verify($clientSecret, $client['client_secret']))
+		{
+			return new HttpResponse(401, ['Content-Type' => 'application/json'], json_encode([
+				'error' => 'invalid_client',
+				'error_description' => 'Invalid client credentials',
+			]));
+		}
+
+		// Generate access token (no refresh token for client_credentials)
+		$accessToken = bin2hex(random_bytes(32));
+
+		$this->storage->saveToken($accessToken, [
+			'client_id' => $clientId,
+			'expires_in' => self::CLIENT_CREDENTIALS_TOKEN_TTL,
+			'token_type' => 'Bearer',
+			'grant_type' => 'client_credentials',
+		]);
+
+		return new HttpResponse(200, [
+			'Content-Type' => 'application/json',
+			'Cache-Control' => 'no-store',
+		], json_encode([
+			'access_token' => $accessToken,
+			'token_type' => 'Bearer',
+			'expires_in' => self::CLIENT_CREDENTIALS_TOKEN_TTL,
 		]));
 	}
 

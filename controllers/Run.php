@@ -41,18 +41,35 @@ class Run extends Base
 
         if ($config->oauthEnabled && !empty($config->oauthPassword))
         {
-            $protocol = 'http';
-            $baseUrl = "{$protocol}://{$config->serverHost}:{$config->serverPort}";
-            $oauthServer = new OAuthServer($baseUrl, $config->mcpPath, $config->oauthPassword);
+            try
+            {
+                $protocol = 'http';
+                $baseUrl = "{$protocol}://{$config->serverHost}:{$config->serverPort}";
+                $oauthServer = new OAuthServer($baseUrl, $config->mcpPath, $config->oauthPassword);
 
-            $transport = new OAuthTransport(
-                host: $config->serverHost,
-                port: $config->serverPort,
-                mcpPath: $config->mcpPath,
-                enableJsonResponse: !$config->mcpSSEEnable,
-                stateless: $config->mcpStateless,
-                oauthServer: $oauthServer
-            );
+                $transport = new OAuthTransport(
+                    host: $config->serverHost,
+                    port: $config->serverPort,
+                    mcpPath: $config->mcpPath,
+                    enableJsonResponse: !$config->mcpSSEEnable,
+                    stateless: $config->mcpStateless,
+                    oauthServer: $oauthServer
+                );
+            }
+            catch (\Throwable $e)
+            {
+                $logger->error('Failed to initialize OAuth transport, falling back to standard transport.', [
+                    'error' => $e->getMessage(),
+                ]);
+
+                $transport = new StreamableHttpServerTransport(
+                    host: $config->serverHost,
+                    port: $config->serverPort,
+                    mcpPath: $config->mcpPath,
+                    enableJsonResponse: !$config->mcpSSEEnable,
+                    stateless: $config->mcpStateless
+                );
+            }
         }
         else
         {

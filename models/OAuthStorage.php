@@ -17,7 +17,7 @@ class OAuthStorage
 		$this->storagePath = \RX_BASEDIR . 'files/mcpserver/oauth/';
 		if (!is_dir($this->storagePath))
 		{
-			if (!mkdir($this->storagePath, 0700, true))
+			if (!@mkdir($this->storagePath, 0700, true) && !is_dir($this->storagePath))
 			{
 				throw new \RuntimeException('Failed to create OAuth storage directory: ' . $this->storagePath);
 			}
