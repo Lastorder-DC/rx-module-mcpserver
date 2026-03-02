@@ -123,39 +123,32 @@ class BoardElements extends MCPServerInterface
     }
 
     /**
-     * Retrieves a list of documents (posts) with full content from a specific module.
+     * Retrieves multiple documents (posts) with full content by their document SRLs.
      * Returns up to 100 documents at once including their body content.
      * 
-     * @param int $module_srl Module SRL to retrieve documents from
-     * @param int $page Page number (default: 1)
-     * @param int $list_count Number of documents to retrieve (default: 20, max: 100)
-     * @param int $page_count Number of page links for navigation (default: 10)
-     * @return array Document list with pagination info (current_page, max_page, total_count, documents)
+     * @param array $document_srls Array of document SRLs to retrieve (max 100)
+     * @return array Document list with total_count and documents
      */
     #[McpTool(name: 'get_document_list_with_content')]
     public function getDocumentListWithContent(
-        #[Schema(type: 'integer', minimum: 1)]
-        int $module_srl,
-
-        #[Schema(type: 'integer', minimum: 1)]
-        int $page = 1,
-
-        #[Schema(type: 'integer', minimum: 1, maximum: 100)]
-        int $list_count = 20,
-
-        #[Schema(type: 'integer', minimum: 1, maximum: 100)]
-        int $page_count = 10
+        #[Schema(type: 'array', items: ['type' => 'integer'], minItems: 1, maxItems: 100)]
+        array $document_srls
     ): array {
-        $args = new \stdClass();
-        $args->module_srl = $module_srl;
-        $args->page = $page;
-        $args->list_count = $list_count;
-        $args->page_count = $page_count;
+        if (empty($document_srls)) {
+            throw new \Exception('document_srls must not be empty.');
+        }
 
-        $output = executeQueryArray('document.getDocumentList', $args);
+        if (count($document_srls) > 100) {
+            throw new \Exception('document_srls must not exceed 100 items.');
+        }
+
+        $args = new \stdClass();
+        $args->document_srls = array_map('intval', $document_srls);
+
+        $output = executeQueryArray('document.getDocuments', $args);
 
         if (!$output->toBool()) {
-            throw new \Exception('Cannot retrieve document list: ' . $output->getMessage());
+            throw new \Exception('Cannot retrieve documents: ' . $output->getMessage());
         }
 
         $documents = [];
@@ -180,12 +173,8 @@ class BoardElements extends MCPServerInterface
             }
         }
 
-        $totalPage = $output->total_page ?? 1;
-
         return [
-            'current_page' => $page,
-            'max_page' => (int)$totalPage,
-            'total_count' => (int)($output->total_count ?? 0),
+            'total_count' => count($documents),
             'documents' => $documents,
         ];
     }
