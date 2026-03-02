@@ -9,6 +9,8 @@ use Rhymix\Modules\Mcpserver\Models\Config as ConfigModel;
 use Rhymix\Modules\Mcpserver\Models\MCPCache;
 use Rhymix\Modules\Mcpserver\Models\MCPLogger;
 use Rhymix\Modules\Mcpserver\Models\MethodValidator;
+use Rhymix\Modules\Mcpserver\Models\OAuthServer;
+use Rhymix\Modules\Mcpserver\Models\OAuthTransport;
 
 if (PHP_SAPI === 'cli')
 {
@@ -37,13 +39,31 @@ class Run extends Base
 
         MethodValidator::updateLockFile(); // Update the lock file with current method hashes
 
-        $transport = new StreamableHttpServerTransport(
-            host: $config->serverHost,
-            port: $config->serverPort,
-            mcpPath: $config->mcpPath,
-            enableJsonResponse: !$config->mcpSSEEnable,
-            stateless: $config->mcpStateless
-        );
+        if ($config->oauthEnabled && !empty($config->oauthPassword))
+        {
+            $protocol = 'http';
+            $baseUrl = "{$protocol}://{$config->serverHost}:{$config->serverPort}";
+            $oauthServer = new OAuthServer($baseUrl, $config->mcpPath, $config->oauthPassword);
+
+            $transport = new OAuthTransport(
+                host: $config->serverHost,
+                port: $config->serverPort,
+                mcpPath: $config->mcpPath,
+                enableJsonResponse: !$config->mcpSSEEnable,
+                stateless: $config->mcpStateless,
+                oauthServer: $oauthServer
+            );
+        }
+        else
+        {
+            $transport = new StreamableHttpServerTransport(
+                host: $config->serverHost,
+                port: $config->serverPort,
+                mcpPath: $config->mcpPath,
+                enableJsonResponse: !$config->mcpSSEEnable,
+                stateless: $config->mcpStateless
+            );
+        }
 
         $server->listen($transport);
 	}
