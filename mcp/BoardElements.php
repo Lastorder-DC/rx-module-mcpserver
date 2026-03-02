@@ -152,6 +152,7 @@ class BoardElements extends MCPServerInterface
 
         $args = new \stdClass();
         $args->document_srls = array_map('intval', $document_srls);
+        $args->list_count = count($document_srls);
 
         $output = executeQueryArray('document.getDocuments', $args);
 
@@ -209,6 +210,7 @@ class BoardElements extends MCPServerInterface
 
         $args = new \stdClass();
         $args->document_srls = array_map('intval', $document_srls);
+        $args->list_count = 10000;
 
         $output = executeQueryArray('mcpserver.getCommentsByDocumentSrls', $args);
 

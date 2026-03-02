@@ -46,7 +46,18 @@ class OAuthServer
 	 */
 	public function isOAuthEndpoint(string $path): bool
 	{
-		return in_array($path, self::OAUTH_PATHS, true);
+		if (in_array($path, self::OAUTH_PATHS, true))
+		{
+			return true;
+		}
+
+		// Support RFC 9728 path-based resolution for protected resource metadata
+		if ($path === '/.well-known/oauth-protected-resource' . $this->mcpPath)
+		{
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -58,7 +69,8 @@ class OAuthServer
 		$method = $request->getMethod();
 
 		return match ($path) {
-			'/.well-known/oauth-protected-resource' => $this->handleProtectedResourceMetadata(),
+			'/.well-known/oauth-protected-resource',
+			'/.well-known/oauth-protected-resource' . $this->mcpPath => $this->handleProtectedResourceMetadata(),
 			'/.well-known/oauth-authorization-server' => $this->handleAuthServerMetadata(),
 			'/register' => $method === 'POST' ? $this->handleClientRegistration($request) : $this->methodNotAllowed(),
 			'/authorize' => match ($method) {
@@ -83,7 +95,7 @@ class OAuthServer
 		{
 			return new HttpResponse(401, [
 				'Content-Type' => 'application/json',
-				'WWW-Authenticate' => 'Bearer resource_metadata="' . $this->baseUrl . '/.well-known/oauth-protected-resource"',
+				'WWW-Authenticate' => 'Bearer resource_metadata="' . $this->baseUrl . '/.well-known/oauth-protected-resource' . $this->mcpPath . '"',
 			], json_encode(['error' => 'unauthorized', 'error_description' => 'Bearer token required']));
 		}
 
@@ -268,8 +280,20 @@ class OAuthServer
 			]));
 		}
 
+		// Check for valid auth session cookie
+		$skipPassword = false;
+		$cookies = $request->getCookieParams();
+		if (!empty($cookies['mcp_auth_session']))
+		{
+			$session = $this->storage->getSession($cookies['mcp_auth_session']);
+			if ($session !== null)
+			{
+				$skipPassword = true;
+			}
+		}
+
 		// Show authorization page
-		$html = $this->renderAuthorizationPage($client['client_name'], $clientId, $redirectUri, $codeChallenge, $codeChallengeMethod, $state, $scope);
+		$html = $this->renderAuthorizationPage($client['client_name'], $clientId, $redirectUri, $codeChallenge, $codeChallengeMethod, $state, $scope, '', $skipPassword);
 
 		return new HttpResponse(200, ['Content-Type' => 'text/html; charset=utf-8'], $html);
 	}
@@ -297,14 +321,29 @@ class OAuthServer
 			return new HttpResponse(302, ['Location' => $redirectTo]);
 		}
 
-		// Validate password
-		if (!password_verify($password, $this->authPassword))
+		// Check for valid auth session cookie to skip password validation
+		$authenticated = false;
+		$cookies = $request->getCookieParams();
+		if (!empty($cookies['mcp_auth_session']))
 		{
-			$client = $this->storage->getClient($clientId);
-			$clientName = $client['client_name'] ?? 'Unknown Client';
-			$html = $this->renderAuthorizationPage($clientName, $clientId, $redirectUri, $codeChallenge, $codeChallengeMethod, $state, '', 'Invalid password. Please try again.');
+			$session = $this->storage->getSession($cookies['mcp_auth_session']);
+			if ($session !== null)
+			{
+				$authenticated = true;
+			}
+		}
 
-			return new HttpResponse(200, ['Content-Type' => 'text/html; charset=utf-8'], $html);
+		// Validate password if no valid session
+		if (!$authenticated)
+		{
+			if (!password_verify($password, $this->authPassword))
+			{
+				$client = $this->storage->getClient($clientId);
+				$clientName = $client['client_name'] ?? 'Unknown Client';
+				$html = $this->renderAuthorizationPage($clientName, $clientId, $redirectUri, $codeChallenge, $codeChallengeMethod, $state, '', 'Invalid password. Please try again.');
+
+				return new HttpResponse(200, ['Content-Type' => 'text/html; charset=utf-8'], $html);
+			}
 		}
 
 		// Validate client
@@ -332,7 +371,17 @@ class OAuthServer
 			'state' => $state,
 		]));
 
-		return new HttpResponse(302, ['Location' => $redirectTo]);
+		$headers = ['Location' => $redirectTo];
+
+		// Set session cookie if not already authenticated via session
+		if (!$authenticated)
+		{
+			$sessionId = bin2hex(random_bytes(32));
+			$this->storage->saveSession($sessionId, []);
+			$headers['Set-Cookie'] = 'mcp_auth_session=' . $sessionId . '; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000';
+		}
+
+		return new HttpResponse(302, $headers);
 	}
 
 	// ========== Token Endpoint ==========
@@ -597,7 +646,7 @@ class OAuthServer
 		return new HttpResponse(405, ['Content-Type' => 'application/json'], json_encode(['error' => 'method_not_allowed']));
 	}
 
-	private function renderAuthorizationPage(string $clientName, string $clientId, string $redirectUri, string $codeChallenge, string $codeChallengeMethod, string $state, string $scope = '', string $error = ''): string
+	private function renderAuthorizationPage(string $clientName, string $clientId, string $redirectUri, string $codeChallenge, string $codeChallengeMethod, string $state, string $scope = '', string $error = '', bool $skipPassword = false): string
 	{
 		$clientNameEsc = htmlspecialchars($clientName, ENT_QUOTES, 'UTF-8');
 		$clientIdEsc = htmlspecialchars($clientId, ENT_QUOTES, 'UTF-8');
@@ -607,6 +656,17 @@ class OAuthServer
 		$stateEsc = htmlspecialchars($state, ENT_QUOTES, 'UTF-8');
 		$scopeEsc = htmlspecialchars($scope, ENT_QUOTES, 'UTF-8');
 		$errorHtml = $error ? '<div class="error">' . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . '</div>' : '';
+
+		$passwordFieldHtml = '';
+		if (!$skipPassword)
+		{
+			$passwordFieldHtml = <<<HTML
+            <div class="form-group">
+                <label for="password">Authorization Password</label>
+                <input type="password" id="password" name="password" required autofocus placeholder="Enter the configured authorization password">
+            </div>
+HTML;
+		}
 
 		return <<<HTML
 <!DOCTYPE html>
@@ -657,10 +717,7 @@ class OAuthServer
             <input type="hidden" name="state" value="{$stateEsc}">
             <input type="hidden" name="scope" value="{$scopeEsc}">
 
-            <div class="form-group">
-                <label for="password">Authorization Password</label>
-                <input type="password" id="password" name="password" required autofocus placeholder="Enter the configured authorization password">
-            </div>
+            {$passwordFieldHtml}
 
             <div class="buttons">
                 <button type="submit" name="action" value="deny" class="btn btn-secondary">Deny</button>
