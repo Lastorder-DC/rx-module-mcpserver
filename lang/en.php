@@ -89,6 +89,20 @@ $lang->mcpserver_oauth_new_secret_warning = 'This secret will not be shown again
 $lang->mcpserver_oauth_has_secret = 'Yes';
 $lang->mcpserver_oauth_no_secret = 'None';
 
+// OAuth public URL
+$lang->mcpserver_oauth_public_url = 'OAuth Public URL';
+$lang->mcpserver_oauth_public_url_placeholder = 'https://example.com';
+$lang->mcpserver_oauth_public_url_help = 'Public URL displayed in OAuth metadata. If not set, the internal server address (http://127.0.0.1:port) will be used. Must be set when exposing through a reverse proxy. (e.g., https://fanbinit.us)';
+
+// OAuth manual client registration
+$lang->mcpserver_oauth_register_title = 'Manual Client Registration';
+$lang->mcpserver_oauth_register_btn = 'Register Client';
+$lang->mcpserver_oauth_register_name_placeholder = 'Enter client name';
+$lang->mcpserver_oauth_register_name_required = 'Please enter a client name.';
+$lang->mcpserver_oauth_register_redirect_uris = 'Redirect URIs';
+$lang->mcpserver_oauth_register_redirect_uris_placeholder = 'https://example.com/callback';
+$lang->mcpserver_oauth_register_redirect_uris_help = 'Enter one Redirect URI per line. Required for authorization_code grant type.';
+
 $lang->mcpserver_section_log = 'Log Configuration';
 $lang->mcpserver_log_output = 'Log Output';
 $lang->mcpserver_log_help = 'Enables log output through PSR-3 compatible logger. Useful for development and debugging, can be disabled in production for performance.';

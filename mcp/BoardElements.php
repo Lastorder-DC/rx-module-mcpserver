@@ -79,6 +79,50 @@ class BoardElements extends MCPServerInterface
     }
 
     /**
+     * Retrieves the content (body) of a specific document (post).
+     * 
+     * @param int $document_srl Document SRL to retrieve content from
+     * @return array Document details including title, content, author, and metadata
+     */
+    #[McpTool(name: 'get_document_content')]
+    public function getDocumentContent(
+        #[Schema(type: 'integer', minimum: 1)]
+        int $document_srl
+    ): array {
+        $args = new \stdClass();
+        $args->document_srl = $document_srl;
+
+        $output = executeQuery('document.getDocument', $args);
+
+        if (!$output->toBool()) {
+            throw new \Exception('Cannot retrieve document: ' . $output->getMessage());
+        }
+
+        if (!$output->data) {
+            throw new \Exception('Document not found: ' . $document_srl);
+        }
+
+        $document = $output->data;
+
+        return [
+            'document_srl' => $document->document_srl,
+            'module_srl' => $document->module_srl,
+            'title' => $document->title,
+            'content' => $document->content,
+            'nick_name' => $document->nick_name,
+            'member_srl' => $document->member_srl,
+            'comment_count' => $document->comment_count,
+            'readed_count' => $document->readed_count,
+            'voted_count' => $document->voted_count,
+            'regdate' => $document->regdate,
+            'last_update' => $document->last_update,
+            'status' => $document->status,
+            'category_srl' => $document->category_srl,
+            'tags' => $document->tags ?? '',
+        ];
+    }
+
+    /**
      * Retrieves a paginated list of comments for a specific document.
      * 
      * @param int $document_srl Document SRL to retrieve comments from
