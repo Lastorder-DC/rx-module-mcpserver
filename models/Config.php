@@ -52,6 +52,9 @@ class Config
 			if (!isset(self::$_cache->mcpStateless)) self::$_cache->mcpStateless = false;
 			if (!isset(self::$_cache->disableExampleMethods)) self::$_cache->disableExampleMethods = false;
 
+			if (!isset(self::$_cache->oauthEnabled)) self::$_cache->oauthEnabled = false;
+			if (!isset(self::$_cache->oauthPassword)) self::$_cache->oauthPassword = '';
+
 			if (!isset(self::$_cache->printLog)) self::$_cache->printLog = true;
 			if (!isset(self::$_cache->printLogLevels)) {
 				self::$_cache->printLogLevels = [

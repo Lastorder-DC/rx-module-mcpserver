@@ -60,6 +60,17 @@ $lang->mcpserver_stateless_help = 'Processes each request independently without 
 $lang->mcpserver_disable_example_methods = 'Disable Example Methods';
 $lang->mcpserver_disable_example_methods_help = 'Disables default example methods. It is recommended to disable this in production environments for security reasons. (Default: No)';
 $lang->mcpserver_cache_warning = 'MCP session requires cache to be enabled. Currently, Rhymix cache is not configured. <a href="@url([\'module\'=>\'admin\',\'act\'=>\'dispAdminConfigAdvanced\'])" target="_blank">Enable cache</a> or activate Stateless mode.';
+
+// OAuth settings
+$lang->mcpserver_section_oauth = 'OAuth 2.0 Authentication';
+$lang->mcpserver_oauth_description = 'When OAuth 2.0 authentication is enabled, MCP clients must authenticate using Bearer tokens. Supports the OAuth 2.0 Authorization Code + PKCE flow as defined in the MCP specification.';
+$lang->mcpserver_oauth_enable = 'Enable OAuth 2.0';
+$lang->mcpserver_oauth_enable_help = 'Enables OAuth 2.0 authentication. When enabled, unauthenticated requests will be rejected. (Default: Disabled)';
+$lang->mcpserver_oauth_password = 'Authorization Password';
+$lang->mcpserver_oauth_password_placeholder = 'Enter to change password';
+$lang->mcpserver_oauth_password_help = 'Password used for the OAuth authorization page. MCP clients will need to enter this password during the authorization flow.';
+$lang->mcpserver_oauth_password_required = 'OAuth 2.0 is enabled but no authorization password is set. Please set a password.';
+
 $lang->mcpserver_section_log = 'Log Configuration';
 $lang->mcpserver_log_output = 'Log Output';
 $lang->mcpserver_log_help = 'Enables log output through PSR-3 compatible logger. Useful for development and debugging, can be disabled in production for performance.';

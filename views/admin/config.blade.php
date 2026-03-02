@@ -112,6 +112,38 @@
 	</section>
 
 	<section class="section">
+		<h1>{{ $lang->mcpserver_section_oauth }}</h1>
+
+		<div class="x_alert x_alert-info">
+			<p>{!! $lang->mcpserver_oauth_description !!}</p>
+		</div>
+
+		<div class="x_control-group">
+			<label class="x_control-label" for="oauthEnabled">{{ $lang->mcpserver_oauth_enable }}</label>
+			<div class="x_controls">
+				<select name="oauthEnabled" id="oauthEnabled">
+					<option value="Y" @selected($config->oauthEnabled ?? false)>{{ $lang->mcpserver_enable }}</option>
+					<option value="N" @selected(!($config->oauthEnabled ?? false))>{{ $lang->mcpserver_disable }}</option>
+				</select>
+				<p class="x_help-block">{{ $lang->mcpserver_oauth_enable_help }}</p>
+			</div>
+		</div>
+
+		<div class="x_control-group">
+			<label class="x_control-label" for="oauthPassword">{{ $lang->mcpserver_oauth_password }}</label>
+			<div class="x_controls">
+				<input type="password" name="oauthPassword" id="oauthPassword" value="" class="x_form-control" placeholder="{{ $lang->mcpserver_oauth_password_placeholder }}" autocomplete="new-password" />
+				<p class="x_help-block">{{ $lang->mcpserver_oauth_password_help }}</p>
+				@if ($config->oauthEnabled && empty($config->oauthPassword))
+				<div class="message error">
+					<p>{{ $lang->mcpserver_oauth_password_required }}</p>
+				</div>
+				@endif
+			</div>
+		</div>
+	</section>
+
+	<section class="section">
 		<h1>{{ $lang->mcpserver_section_log }}</h1>
 		
 		<div class="x_control-group">

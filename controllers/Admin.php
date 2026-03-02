@@ -99,6 +99,13 @@ class Admin extends Base
 		$config->mcpStateless = ($vars->mcpStateless === 'Y');
 		$config->disableExampleMethods = ($vars->disableExampleMethods === 'Y');
 
+		// OAuth 설정
+		$config->oauthEnabled = ($vars->oauthEnabled === 'Y');
+		if (isset($vars->oauthPassword) && trim($vars->oauthPassword) !== '')
+		{
+			$config->oauthPassword = trim($vars->oauthPassword);
+		}
+
 		// 로그 설정
 		$config->printLog = ($vars->printLog === 'Y');
 		
