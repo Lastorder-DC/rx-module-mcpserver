@@ -177,6 +177,43 @@ class OAuthStorage
 		$this->saveJson('refresh_tokens.json', $tokens);
 	}
 
+	// ========== Auth Sessions ==========
+
+	public function saveSession(string $sessionId, array $data): void
+	{
+		$sessions = $this->loadJson('sessions.json');
+		$data['created_at'] = time();
+		$sessions[$sessionId] = $data;
+		$this->saveJson('sessions.json', $sessions);
+	}
+
+	public function getSession(string $sessionId): ?array
+	{
+		$sessions = $this->loadJson('sessions.json');
+		$data = $sessions[$sessionId] ?? null;
+
+		if ($data === null)
+		{
+			return null;
+		}
+
+		// Sessions expire after 30 days
+		if (time() - $data['created_at'] > 2592000)
+		{
+			$this->deleteSession($sessionId);
+			return null;
+		}
+
+		return $data;
+	}
+
+	public function deleteSession(string $sessionId): void
+	{
+		$sessions = $this->loadJson('sessions.json');
+		unset($sessions[$sessionId]);
+		$this->saveJson('sessions.json', $sessions);
+	}
+
 	// ========== File I/O Helpers ==========
 
 	private function loadJson(string $filename): array
@@ -258,6 +295,22 @@ class OAuthStorage
 		if ($changed)
 		{
 			$this->saveJson('refresh_tokens.json', $refreshTokens);
+		}
+
+		// Clean expired auth sessions (30 days)
+		$sessions = $this->loadJson('sessions.json');
+		$changed = false;
+		foreach ($sessions as $sessionId => $data)
+		{
+			if (time() - ($data['created_at'] ?? 0) > 2592000)
+			{
+				unset($sessions[$sessionId]);
+				$changed = true;
+			}
+		}
+		if ($changed)
+		{
+			$this->saveJson('sessions.json', $sessions);
 		}
 	}
 }
