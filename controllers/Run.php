@@ -25,8 +25,8 @@ class Run extends Base
 
         $server = Server::make()
             ->withServerInfo(
-                name: $config->serverName,
-                version: $config->serverVersion,
+                $config->serverName,
+                $config->serverVersion
             )
             ->withLogger($logger)
             ->withCache($cache)
@@ -38,11 +38,12 @@ class Run extends Base
         MethodValidator::updateLockFile(); // Update the lock file with current method hashes
 
         $transport = new StreamableHttpServerTransport(
-            host: $config->serverHost,
-            port: $config->serverPort,
-            mcpPath: $config->mcpPath,
-            enableJsonResponse: !$config->mcpSSEEnable,
-            stateless: $config->mcpStateless
+            $config->serverHost,
+            $config->serverPort,
+            $config->mcpPath,
+            null,
+            !$config->mcpSSEEnable,
+            $config->mcpStateless
         );
 
         $server->listen($transport);

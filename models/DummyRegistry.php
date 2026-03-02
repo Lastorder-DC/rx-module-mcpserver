@@ -17,7 +17,7 @@ class DummyRegistry extends PhpMcpRegistry
     public array $resourceTemplates = [];
     public array $prompts = [];
 
-    public function registerTool(Tool $tool, callable|array|string $handler, bool $isManual = false): void
+    public function registerTool(Tool $tool, $handler, bool $isManual = false): void
     {
         $this->tools[$tool->name] = [
             'tool' => $tool,
@@ -26,7 +26,7 @@ class DummyRegistry extends PhpMcpRegistry
         ];
     }
 
-    public function registerResource(Resource $resource, callable|array|string $handler, bool $isManual = false): void
+    public function registerResource(Resource $resource, $handler, bool $isManual = false): void
     {
         $this->resources[$resource->name] = [
             'resource' => $resource,
@@ -37,9 +37,9 @@ class DummyRegistry extends PhpMcpRegistry
 
     public function registerResourceTemplate(
         ResourceTemplate $template,
-        callable|array|string $handler,
+        $handler,
         array $completionProviders = [],
-        bool $isManual = false,
+        bool $isManual = false
     ): void
     {
         $this->resourceTemplates[$template->name] = [
@@ -52,9 +52,9 @@ class DummyRegistry extends PhpMcpRegistry
 
     public function registerPrompt(
         Prompt $prompt,
-        callable|array|string $handler,
+        $handler,
         array $completionProviders = [],
-        bool $isManual = false,
+        bool $isManual = false
     ): void
     {
         $this->prompts[$prompt->name] = [

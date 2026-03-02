@@ -28,7 +28,7 @@ class MCPCache implements CacheInterface
      * @throws \Psr\SimpleCache\InvalidArgumentException
      *   MUST be thrown if the $key string is not a legal value.
      */
-    public function get(string $key, mixed $default = null): mixed
+    public function get(string $key, $default = null)
     {
         return RhymixCache::get(self::$cache_prefix . ':' . $key) ?: $default;
     }
@@ -47,7 +47,7 @@ class MCPCache implements CacheInterface
      * @throws \Psr\SimpleCache\InvalidArgumentException
      *   MUST be thrown if the $key string is not a legal value.
      */
-    public function set(string $key, mixed $value, null|int|\DateInterval $ttl = null): bool
+    public function set(string $key, $value, $ttl = null): bool
     {
         if ($ttl instanceof \DateInterval) {
             $ttl = $ttl->s + ($ttl->i * 60) + ($ttl->h * 3600) + ($ttl->d * 86400);
@@ -95,7 +95,7 @@ class MCPCache implements CacheInterface
      *   MUST be thrown if $keys is neither an array nor a Traversable,
      *   or if any of the $keys are not a legal value.
      */
-    public function getMultiple(iterable $keys, mixed $default = null): iterable
+    public function getMultiple(iterable $keys, $default = null): iterable
     {
         $result = [];
         foreach ($keys as $key) {
@@ -118,7 +118,7 @@ class MCPCache implements CacheInterface
      *   MUST be thrown if $values is neither an array nor a Traversable,
      *   or if any of the $values are not a legal value.
      */
-    public function setMultiple(iterable $values, null|int|\DateInterval $ttl = null): bool
+    public function setMultiple(iterable $values, $ttl = null): bool
     {
         $success = true;
         foreach ($values as $key => $value) {
