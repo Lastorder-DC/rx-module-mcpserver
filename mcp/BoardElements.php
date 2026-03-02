@@ -22,6 +22,7 @@ class BoardElements extends MCPServerInterface
      * @param int $page Page number (default: 1)
      * @param int $list_count Number of documents per page (default: 20)
      * @param int $page_count Number of page links for navigation (default: 10)
+     * @param bool $include_content Whether to include document content (default: false)
      * @return array Document list with pagination info (current_page, max_page, total_count, documents)
      */
     #[McpTool(name: 'get_document_list')]
@@ -36,7 +37,10 @@ class BoardElements extends MCPServerInterface
         int $list_count = 20,
 
         #[Schema(type: 'integer', minimum: 1, maximum: 100)]
-        int $page_count = 10
+        int $page_count = 10,
+
+        #[Schema(type: 'boolean')]
+        bool $include_content = false
     ): array {
         $args = new \stdClass();
         $args->module_srl = $module_srl;
@@ -53,7 +57,7 @@ class BoardElements extends MCPServerInterface
         $documents = [];
         if ($output->data) {
             foreach ($output->data as $document) {
-                $documents[] = [
+                $doc = [
                     'document_srl' => $document->document_srl,
                     'title' => $document->title,
                     'nick_name' => $document->nick_name,
@@ -65,6 +69,10 @@ class BoardElements extends MCPServerInterface
                     'status' => $document->status,
                     'category_srl' => $document->category_srl,
                 ];
+                if ($include_content) {
+                    $doc['content'] = $document->content;
+                }
+                $documents[] = $doc;
             }
         }
 
@@ -129,8 +137,8 @@ class BoardElements extends MCPServerInterface
      * @param array $document_srls Array of document SRLs to retrieve (max 100)
      * @return array Document list with total_count and documents
      */
-    #[McpTool(name: 'get_document_list_with_content')]
-    public function getDocumentListWithContent(
+    #[McpTool(name: 'get_documents_by_srls')]
+    public function getDocumentsBySrls(
         #[Schema(type: 'array', items: ['type' => 'integer'], minItems: 1, maxItems: 100)]
         array $document_srls
     ): array {
