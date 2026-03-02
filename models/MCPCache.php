@@ -17,6 +17,30 @@ class MCPCache implements CacheInterface
     private static string $cache_prefix = 'mcpcache';
     private static ?MCPCache $instance = null;
 
+    /**
+     * In-memory cache fallback for when Rhymix cache is not available (e.g. CLI mode).
+     */
+    private array $memoryCache = [];
+
+    /**
+     * Whether the Rhymix cache backend is available.
+     */
+    private bool $rhymixCacheAvailable = false;
+
+    private function __construct()
+    {
+        try {
+            $testKey = self::$cache_prefix . ':__test__';
+            $result = RhymixCache::set($testKey, 'test', 10);
+            if ($result) {
+                RhymixCache::delete($testKey);
+                $this->rhymixCacheAvailable = true;
+            }
+        } catch (\Throwable $e) {
+            $this->rhymixCacheAvailable = false;
+        }
+    }
+
 	/**
      * Fetches a value from the cache.
      *
@@ -30,7 +54,12 @@ class MCPCache implements CacheInterface
      */
     public function get(string $key, mixed $default = null): mixed
     {
-        return RhymixCache::get(self::$cache_prefix . ':' . $key) ?: $default;
+        if ($this->rhymixCacheAvailable) {
+            $value = RhymixCache::get(self::$cache_prefix . ':' . $key);
+            return $value ?? $default;
+        }
+
+        return $this->memoryCache[$key] ?? $default;
     }
 
     /**
@@ -55,7 +84,17 @@ class MCPCache implements CacheInterface
             $ttl = 0; // No expiration
         }
 
-        return RhymixCache::set(self::$cache_prefix . ':' . $key, $value, $ttl);
+        if ($this->rhymixCacheAvailable) {
+            try {
+                $result = RhymixCache::set(self::$cache_prefix . ':' . $key, $value, $ttl);
+                return (bool) $result;
+            } catch (\Throwable $e) {
+                // Fall through to in-memory cache
+            }
+        }
+
+        $this->memoryCache[$key] = $value;
+        return true;
     }
 
     /**
@@ -70,7 +109,17 @@ class MCPCache implements CacheInterface
      */
     public function delete(string $key): bool
     {
-        return RhymixCache::delete(self::$cache_prefix . ':' . $key);
+        unset($this->memoryCache[$key]);
+
+        if ($this->rhymixCacheAvailable) {
+            try {
+                return (bool) RhymixCache::delete(self::$cache_prefix . ':' . $key);
+            } catch (\Throwable $e) {
+                return true;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -80,7 +129,17 @@ class MCPCache implements CacheInterface
      */
     public function clear(): bool
     {
-        return RhymixCache::clearGroup(self::$cache_prefix);
+        $this->memoryCache = [];
+
+        if ($this->rhymixCacheAvailable) {
+            try {
+                return (bool) RhymixCache::clearGroup(self::$cache_prefix);
+            } catch (\Throwable $e) {
+                return true;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -168,7 +227,15 @@ class MCPCache implements CacheInterface
      */
     public function has(string $key): bool
     {
-        return RhymixCache::exists(self::$cache_prefix . ':' . $key);
+        if ($this->rhymixCacheAvailable) {
+            try {
+                return (bool) RhymixCache::exists(self::$cache_prefix . ':' . $key);
+            } catch (\Throwable $e) {
+                // Fall through to in-memory check
+            }
+        }
+
+        return array_key_exists($key, $this->memoryCache);
     }
 
     public static function getInstance(object $config): MCPCache
