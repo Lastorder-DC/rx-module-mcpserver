@@ -130,6 +130,14 @@
 		</div>
 
 		<div class="x_control-group">
+			<label class="x_control-label" for="oauthPublicUrl">{{ $lang->mcpserver_oauth_public_url }}</label>
+			<div class="x_controls">
+				<input type="text" name="oauthPublicUrl" id="oauthPublicUrl" value="{{ $config->oauthPublicUrl ?? '' }}" class="x_form-control" placeholder="{{ $lang->mcpserver_oauth_public_url_placeholder }}" />
+				<p class="x_help-block">{{ $lang->mcpserver_oauth_public_url_help }}</p>
+			</div>
+		</div>
+
+		<div class="x_control-group">
 			<label class="x_control-label" for="oauthPassword">{{ $lang->mcpserver_oauth_password }}</label>
 			<div class="x_controls">
 				<input type="password" name="oauthPassword" id="oauthPassword" value="" class="x_form-control" placeholder="{{ $lang->mcpserver_oauth_password_placeholder }}" autocomplete="new-password" />
@@ -178,6 +186,46 @@
 				@else
 				<p>{{ $lang->mcpserver_oauth_no_clients }}</p>
 				@endif
+			</div>
+		</div>
+
+		<div class="x_control-group">
+			<label class="x_control-label">{{ $lang->mcpserver_oauth_register_title }}</label>
+			<div class="x_controls">
+				<div style="background:#f8f9fa; border:1px solid #ddd; border-radius:8px; padding:20px; margin-top:5px;">
+					<div class="x_control-group" style="margin-bottom:12px;">
+						<label for="oauth_client_name"><strong>{{ $lang->mcpserver_oauth_client_name }}</strong></label>
+						<input type="text" id="oauth_client_name" class="x_form-control" placeholder="{{ $lang->mcpserver_oauth_register_name_placeholder }}" style="margin-top:4px;" />
+					</div>
+					<div class="x_control-group" style="margin-bottom:12px;">
+						<label for="oauth_redirect_uris"><strong>{{ $lang->mcpserver_oauth_register_redirect_uris }}</strong></label>
+						<textarea id="oauth_redirect_uris" class="x_form-control" rows="3" placeholder="{{ $lang->mcpserver_oauth_register_redirect_uris_placeholder }}" style="margin-top:4px;"></textarea>
+						<p class="x_help-block">{{ $lang->mcpserver_oauth_register_redirect_uris_help }}</p>
+					</div>
+					<div class="x_control-group" style="margin-bottom:12px;">
+						<label><strong>{{ $lang->mcpserver_oauth_client_grant_types }}</strong></label>
+						<div style="margin-top:4px;">
+							<label class="x_form-check" style="margin-right:15px;">
+								<input type="checkbox" id="oauth_grant_authorization_code" checked /> authorization_code
+							</label>
+							<label class="x_form-check" style="margin-right:15px;">
+								<input type="checkbox" id="oauth_grant_client_credentials" /> client_credentials
+							</label>
+							<label class="x_form-check">
+								<input type="checkbox" id="oauth_grant_refresh_token" checked /> refresh_token
+							</label>
+						</div>
+					</div>
+					<div class="x_control-group" style="margin-bottom:12px;">
+						<label for="oauth_auth_method"><strong>{{ $lang->mcpserver_oauth_client_auth_method }}</strong></label>
+						<select id="oauth_auth_method" class="x_form-control" style="margin-top:4px;">
+							<option value="none">none</option>
+							<option value="client_secret_post">client_secret_post</option>
+							<option value="client_secret_basic">client_secret_basic</option>
+						</select>
+					</div>
+					<button type="button" class="x_btn x_btn-primary" onclick="mcpserverRegisterClient()">{{ $lang->mcpserver_oauth_register_btn }}</button>
+				</div>
 			</div>
 		</div>
 	</section>
@@ -258,6 +306,36 @@ function mcpserverDeleteClient(clientId) {
 	if (!confirm('{{ $lang->mcpserver_oauth_delete_client_confirm }}')) return;
 	exec_json('procMcpserverAdminDeleteOAuthClient', { client_id: clientId, success_return_url: location.href }, function(res) {
 		if (res.error == 0) {
+			location.reload();
+		}
+	});
+}
+function mcpserverRegisterClient() {
+	var clientName = document.getElementById('oauth_client_name').value.trim();
+	if (!clientName) {
+		alert('{{ $lang->mcpserver_oauth_register_name_required }}');
+		return;
+	}
+	var redirectUris = document.getElementById('oauth_redirect_uris').value.trim();
+	var grantTypes = [];
+	if (document.getElementById('oauth_grant_authorization_code').checked) grantTypes.push('authorization_code');
+	if (document.getElementById('oauth_grant_client_credentials').checked) grantTypes.push('client_credentials');
+	if (document.getElementById('oauth_grant_refresh_token').checked) grantTypes.push('refresh_token');
+	var authMethod = document.getElementById('oauth_auth_method').value;
+
+	exec_json('procMcpserverAdminRegisterOAuthClient', {
+		oauth_client_name: clientName,
+		oauth_redirect_uris: redirectUris,
+		oauth_grant_types: grantTypes,
+		oauth_auth_method: authMethod,
+		success_return_url: location.href
+	}, function(res) {
+		if (res.error == 0) {
+			var msg = 'Client ID: ' + res.client_id;
+			if (res.client_secret) {
+				msg += '\nClient Secret: ' + res.client_secret + '\n\n' + '{{ $lang->mcpserver_oauth_new_secret_warning }}';
+			}
+			alert(msg);
 			location.reload();
 		}
 	});

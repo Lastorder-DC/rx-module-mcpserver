@@ -10,6 +10,7 @@
 		<action name="procMcpserverAdminTestLocalConnection" class="Controllers\Admin" />
 		<action name="procMcpserverAdminDeleteOAuthClient" class="Controllers\Admin" />
 		<action name="procMcpserverAdminRegenerateClientSecret" class="Controllers\Admin" />
+		<action name="procMcpserverAdminRegisterOAuthClient" class="Controllers\Admin" />
 		<action name="dispMcpserverAdminMethodList" class="Controllers\Admin" />
 	</actions>
 	<!-- 이벤트 핸들러 (트리거) 선언 -->
