@@ -283,6 +283,14 @@ class Admin extends Base
 		if (!empty($redirectUrisStr))
 		{
 			$redirectUris = array_filter(array_map('trim', preg_split('/[\r\n]+/', $redirectUrisStr)));
+			foreach ($redirectUris as $uri)
+			{
+				if (!filter_var($uri, FILTER_VALIDATE_URL))
+				{
+					return new BaseObject(-1, 'msg_invalid_request');
+				}
+			}
+			$redirectUris = array_values($redirectUris);
 		}
 
 		if (!$isClientCredentials && empty($redirectUris))

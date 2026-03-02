@@ -244,8 +244,8 @@ class OAuthServer
 			{
 				continue;
 			}
-			$name = urldecode(trim(substr($cookie, 0, $eqPos)));
-			$value = urldecode(trim(substr($cookie, $eqPos + 1)));
+			$name = trim(substr($cookie, 0, $eqPos));
+			$value = trim(substr($cookie, $eqPos + 1));
 			$cookies[$name] = $value;
 		}
 
@@ -289,7 +289,7 @@ class OAuthServer
 		}
 
 		$serializedPart = substr($rawData, $pos + strlen('logged_info|'));
-		$loggedInfo = @unserialize($serializedPart);
+		$loggedInfo = @unserialize($serializedPart, ['allowed_classes' => ['stdClass']]);
 
 		if (!$loggedInfo || !is_object($loggedInfo))
 		{
