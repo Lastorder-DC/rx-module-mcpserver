@@ -130,6 +130,14 @@
 		</div>
 
 		<div class="x_control-group">
+			<label class="x_control-label" for="oauthPublicUrl">{{ $lang->mcpserver_oauth_public_url }}</label>
+			<div class="x_controls">
+				<input type="text" name="oauthPublicUrl" id="oauthPublicUrl" value="{{ $config->oauthPublicUrl ?? '' }}" class="x_form-control" placeholder="{{ $lang->mcpserver_oauth_public_url_placeholder }}" />
+				<p class="x_help-block">{{ $lang->mcpserver_oauth_public_url_help }}</p>
+			</div>
+		</div>
+
+		<div class="x_control-group">
 			<label class="x_control-label" for="oauthPassword">{{ $lang->mcpserver_oauth_password }}</label>
 			<div class="x_controls">
 				<input type="password" name="oauthPassword" id="oauthPassword" value="" class="x_form-control" placeholder="{{ $lang->mcpserver_oauth_password_placeholder }}" autocomplete="new-password" />

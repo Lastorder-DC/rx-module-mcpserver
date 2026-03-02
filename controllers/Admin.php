@@ -123,6 +123,10 @@ class Admin extends Base
 		{
 			$config->oauthPassword = password_hash(trim($vars->oauthPassword), PASSWORD_DEFAULT);
 		}
+		if (isset($vars->oauthPublicUrl))
+		{
+			$config->oauthPublicUrl = trim($vars->oauthPublicUrl);
+		}
 
 		// 로그 설정
 		$config->printLog = ($vars->printLog === 'Y');
@@ -250,5 +254,85 @@ class Admin extends Base
 		{
 			return new BaseObject(-1, $e->getMessage());
 		}
+	}
+
+	public function procMcpserverAdminRegisterOAuthClient()
+	{
+		$vars = Context::getRequestVars();
+
+		$clientName = trim($vars->oauth_client_name ?? '');
+		$redirectUrisStr = trim($vars->oauth_redirect_uris ?? '');
+		$grantTypesArr = $vars->oauth_grant_types ?? [];
+		$authMethod = trim($vars->oauth_auth_method ?? 'none');
+
+		if (empty($clientName))
+		{
+			return new BaseObject(-1, 'msg_invalid_request');
+		}
+
+		// Parse grant types
+		if (!is_array($grantTypesArr) || empty($grantTypesArr))
+		{
+			$grantTypesArr = ['authorization_code'];
+		}
+
+		$isClientCredentials = in_array('client_credentials', $grantTypesArr, true);
+
+		// Parse redirect URIs
+		$redirectUris = [];
+		if (!empty($redirectUrisStr))
+		{
+			$redirectUris = array_filter(array_map('trim', preg_split('/[\r\n]+/', $redirectUrisStr)));
+		}
+
+		if (!$isClientCredentials && empty($redirectUris))
+		{
+			return new BaseObject(-1, 'msg_invalid_request');
+		}
+
+		$clientId = bin2hex(random_bytes(16));
+		$clientSecret = null;
+
+		if ($isClientCredentials || in_array($authMethod, ['client_secret_post', 'client_secret_basic'], true))
+		{
+			$clientSecret = bin2hex(random_bytes(32));
+			$authMethod = $authMethod === 'none' ? 'client_secret_post' : $authMethod;
+		}
+
+		$client = [
+			'client_id' => $clientId,
+			'client_name' => $clientName,
+			'redirect_uris' => $redirectUris,
+			'grant_types' => $grantTypesArr,
+			'response_types' => ['code'],
+			'token_endpoint_auth_method' => $authMethod,
+			'created_at' => time(),
+		];
+
+		if ($clientSecret !== null)
+		{
+			$client['client_secret'] = password_hash($clientSecret, PASSWORD_BCRYPT);
+		}
+
+		try
+		{
+			$storage = new OAuthStorage();
+			$storage->saveClient($client);
+		}
+		catch (\Throwable $e)
+		{
+			return new BaseObject(-1, $e->getMessage());
+		}
+
+		$message = 'Client ID: ' . $clientId;
+		if ($clientSecret !== null)
+		{
+			$message .= "\nClient Secret: " . $clientSecret;
+		}
+
+		$this->add('client_id', $clientId);
+		$this->add('client_secret', $clientSecret);
+		$this->setMessage('success_registed');
+		$this->setRedirectUrl(Context::get('success_return_url'));
 	}
 }

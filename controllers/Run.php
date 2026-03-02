@@ -43,9 +43,9 @@ class Run extends Base
         {
             try
             {
-                $protocol = 'http';
-                $baseUrl = "{$protocol}://{$config->serverHost}:{$config->serverPort}";
-                $oauthServer = new OAuthServer($baseUrl, $config->mcpPath, $config->oauthPassword);
+                $internalBaseUrl = "http://{$config->serverHost}:{$config->serverPort}";
+                $publicBaseUrl = !empty($config->oauthPublicUrl) ? rtrim($config->oauthPublicUrl, '/') : $internalBaseUrl;
+                $oauthServer = new OAuthServer($publicBaseUrl, $config->mcpPath, $config->oauthPassword);
 
                 $transport = new OAuthTransport(
                     host: $config->serverHost,
