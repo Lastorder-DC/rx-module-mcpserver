@@ -244,6 +244,7 @@ class Admin extends Base
 				return new BaseObject(-1, 'msg_invalid_request');
 			}
 			$this->add('client_secret', $newSecret);
+			$this->setMessage('success_updated');
 		}
 		catch (\Throwable $e)
 		{
