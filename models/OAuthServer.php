@@ -219,88 +219,6 @@ class OAuthServer
 
 	// ========== Authorization Endpoint ==========
 
-	/**
-	 * Check if the request comes from a logged-in Rhymix administrator.
-	 * Reads the PHP session cookie and verifies admin status from session data.
-	 */
-	private function isRequestFromAdmin(ServerRequestInterface $request): bool
-	{
-		return true;
-		
-		$cookieHeader = $request->getHeaderLine('Cookie');
-		if (empty($cookieHeader))
-		{
-			return false;
-		}
-
-		$cookies = [];
-		foreach (explode(';', $cookieHeader) as $cookie)
-		{
-			$cookie = trim($cookie);
-			if (empty($cookie))
-			{
-				continue;
-			}
-			$eqPos = strpos($cookie, '=');
-			if ($eqPos === false)
-			{
-				continue;
-			}
-			$name = trim(substr($cookie, 0, $eqPos));
-			$value = trim(substr($cookie, $eqPos + 1));
-			$cookies[$name] = $value;
-		}
-
-		$sessionName = ini_get('session.name') ?: 'PHPSESSID';
-		$sessionId = $cookies[$sessionName] ?? null;
-		if (empty($sessionId))
-		{
-			return false;
-		}
-
-		// Validate session ID format to prevent path traversal
-		if (!preg_match('/^[a-zA-Z0-9,-]+$/', $sessionId))
-		{
-			return false;
-		}
-
-		$savePath = ini_get('session.save_path') ?: sys_get_temp_dir();
-		// Handle N;/path or N;MODE;/path formats
-		if (preg_match('/^(?:\d+;)?(?:\d+;)?(.+)$/', $savePath, $matches))
-		{
-			$savePath = $matches[1];
-		}
-
-		$sessionFile = rtrim($savePath, '/') . '/sess_' . $sessionId;
-		if (!file_exists($sessionFile))
-		{
-			return false;
-		}
-
-		$rawData = @file_get_contents($sessionFile);
-		if ($rawData === false || empty($rawData))
-		{
-			return false;
-		}
-
-		// Find logged_info in session data
-		$pos = strpos($rawData, 'logged_info|');
-		if ($pos === false)
-		{
-			return false;
-		}
-
-		$serializedPart = substr($rawData, $pos + strlen('logged_info|'));
-		$loggedInfo = @unserialize($serializedPart, ['allowed_classes' => ['stdClass']]);
-
-		if (!$loggedInfo || !is_object($loggedInfo))
-		{
-			return false;
-		}
-
-		return (isset($loggedInfo->is_admin) && $loggedInfo->is_admin === 'Y');
-	}
-
 	private function handleAuthorizeGet(ServerRequestInterface $request): HttpResponse
 	{
 		$params = $request->getQueryParams();
@@ -328,15 +246,6 @@ class OAuthServer
 			return new HttpResponse(400, ['Content-Type' => 'application/json'], json_encode([
 				'error' => 'invalid_request',
 				'error_description' => 'PKCE is required. code_challenge and code_challenge_method=S256 must be provided.',
-			]));
-		}
-
-		// Verify admin login
-		if (!$this->isRequestFromAdmin($request))
-		{
-			return new HttpResponse(403, ['Content-Type' => 'application/json'], json_encode([
-				'error' => 'access_denied',
-				'error_description' => 'Administrator login is required. Please log in as an administrator first.',
 			]));
 		}
 
@@ -386,15 +295,6 @@ class OAuthServer
 				'state' => $state,
 			]);
 			return new HttpResponse(302, ['Location' => $redirectTo]);
-		}
-
-		// Verify admin login
-		if (!$this->isRequestFromAdmin($request))
-		{
-			return new HttpResponse(403, ['Content-Type' => 'application/json'], json_encode([
-				'error' => 'access_denied',
-				'error_description' => 'Administrator login is required. Please log in as an administrator first.',
-			]));
 		}
 
 		// Validate password

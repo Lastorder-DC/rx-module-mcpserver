@@ -123,6 +123,74 @@ class BoardElements extends MCPServerInterface
     }
 
     /**
+     * Retrieves a list of documents (posts) with full content from a specific module.
+     * Returns up to 100 documents at once including their body content.
+     * 
+     * @param int $module_srl Module SRL to retrieve documents from
+     * @param int $page Page number (default: 1)
+     * @param int $list_count Number of documents to retrieve (default: 20, max: 100)
+     * @param int $page_count Number of page links for navigation (default: 10)
+     * @return array Document list with pagination info (current_page, max_page, total_count, documents)
+     */
+    #[McpTool(name: 'get_document_list_with_content')]
+    public function getDocumentListWithContent(
+        #[Schema(type: 'integer', minimum: 1)]
+        int $module_srl,
+
+        #[Schema(type: 'integer', minimum: 1)]
+        int $page = 1,
+
+        #[Schema(type: 'integer', minimum: 1, maximum: 100)]
+        int $list_count = 20,
+
+        #[Schema(type: 'integer', minimum: 1, maximum: 100)]
+        int $page_count = 10
+    ): array {
+        $args = new \stdClass();
+        $args->module_srl = $module_srl;
+        $args->page = $page;
+        $args->list_count = $list_count;
+        $args->page_count = $page_count;
+
+        $output = executeQueryArray('document.getDocumentList', $args);
+
+        if (!$output->toBool()) {
+            throw new \Exception('Cannot retrieve document list: ' . $output->getMessage());
+        }
+
+        $documents = [];
+        if ($output->data) {
+            foreach ($output->data as $document) {
+                $documents[] = [
+                    'document_srl' => $document->document_srl,
+                    'module_srl' => $document->module_srl,
+                    'title' => $document->title,
+                    'content' => $document->content,
+                    'nick_name' => $document->nick_name,
+                    'member_srl' => $document->member_srl,
+                    'comment_count' => $document->comment_count,
+                    'readed_count' => $document->readed_count,
+                    'voted_count' => $document->voted_count,
+                    'regdate' => $document->regdate,
+                    'last_update' => $document->last_update,
+                    'status' => $document->status,
+                    'category_srl' => $document->category_srl,
+                    'tags' => $document->tags ?? '',
+                ];
+            }
+        }
+
+        $totalPage = $output->total_page ?? 1;
+
+        return [
+            'current_page' => $page,
+            'max_page' => (int)$totalPage,
+            'total_count' => (int)($output->total_count ?? 0),
+            'documents' => $documents,
+        ];
+    }
+
+    /**
      * Retrieves a paginated list of comments for a specific document.
      * 
      * @param int $document_srl Document SRL to retrieve comments from
