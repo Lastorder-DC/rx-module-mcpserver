@@ -4,10 +4,13 @@
 	<title xml:lang="en">MCP Server</title>
 	<description xml:lang="ko">라이믹스에 적용할 수 있는 Model Context Protocol (MCP) 서버입니다.</description>
 	<description xml:lang="en">A Model Context Protocol (MCP) server that can be applied to Rhymix.</description>
-	<version>1.0.0</version>
-	<date>2025-08-09</date>
+	<version>1.1.0</version>
+	<date>2026-03-03</date>
 	<category>service</category>
 	<author email_address="waterticket@potatosoft.kr" link="https://potatosoft.kr">
 		<name xml:lang="ko">Waterticket</name>
+	</author>
+	<author email_address="lastorder@lastorder.xyz" link="https://lastorder.xyz">
+		<name xml:lang="ko">Lastorder</name>
 	</author>
 </module>
