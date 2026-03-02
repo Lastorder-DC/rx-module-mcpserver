@@ -30,7 +30,7 @@ class MCPCache implements CacheInterface
     private function __construct()
     {
         try {
-            $testKey = self::$cache_prefix . ':__test__';
+            $testKey = self::$cache_prefix . ':__mcpcache_availability_test__';
             $result = RhymixCache::set($testKey, 'test', 10);
             if ($result) {
                 RhymixCache::delete($testKey);

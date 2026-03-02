@@ -361,6 +361,15 @@ class OAuthServer
 		$authHeader = $request->getHeaderLine('Authorization');
 		if (!empty($authHeader) && str_starts_with($authHeader, 'Basic '))
 		{
+			// RFC 6749 Section 2.3.1: Clients MUST NOT use more than one auth method
+			if (!empty($body['client_secret']))
+			{
+				return new HttpResponse(400, ['Content-Type' => 'application/json'], json_encode([
+					'error' => 'invalid_request',
+					'error_description' => 'Multiple client authentication methods are not allowed',
+				]));
+			}
+
 			$decoded = base64_decode(substr($authHeader, 6), true);
 			if ($decoded !== false && str_contains($decoded, ':'))
 			{
