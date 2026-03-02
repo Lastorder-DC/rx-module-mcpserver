@@ -367,15 +367,7 @@ class OAuthServer
 
 	private function handleAuthorizePost(ServerRequestInterface $request): HttpResponse
 	{
-		$contentType = $request->getHeaderLine('Content-Type');
-		if (str_contains($contentType, 'application/x-www-form-urlencoded'))
-		{
-			parse_str($request->getBody()->getContents(), $body);
-		}
-		else
-		{
-			$body = $request->getParsedBody() ?? [];
-		}
+		$body = $request->getParsedBody() ?? [];
 
 		$password = $body['password'] ?? '';
 		$clientId = $body['client_id'] ?? '';
@@ -450,11 +442,11 @@ class OAuthServer
 		$contentType = $request->getHeaderLine('Content-Type');
 		if (str_contains($contentType, 'application/x-www-form-urlencoded'))
 		{
-			parse_str($request->getBody()->getContents(), $body);
+			$body = $request->getParsedBody() ?? [];
 		}
 		else
 		{
-			$body = json_decode($request->getBody()->getContents(), true) ?? [];
+			$body = json_decode((string) $request->getBody(), true) ?? [];
 		}
 
 		// Extract client credentials from Authorization header (client_secret_basic)
