@@ -41,7 +41,7 @@ class Run extends Base
             $config->serverHost,
             $config->serverPort,
             $config->mcpPath,
-            null,
+            null, // sslContext
             !$config->mcpSSEEnable,
             $config->mcpStateless
         );
