@@ -17,7 +17,10 @@ class OAuthStorage
 		$this->storagePath = \RX_BASEDIR . 'files/mcpserver/oauth/';
 		if (!is_dir($this->storagePath))
 		{
-			mkdir($this->storagePath, 0700, true);
+			if (!mkdir($this->storagePath, 0700, true))
+			{
+				throw new \RuntimeException('Failed to create OAuth storage directory: ' . $this->storagePath);
+			}
 		}
 	}
 
@@ -170,7 +173,10 @@ class OAuthStorage
 	{
 		$path = $this->storagePath . $filename;
 		$content = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-		file_put_contents($path, $content, LOCK_EX);
+		if (file_put_contents($path, $content, LOCK_EX) === false)
+		{
+			throw new \RuntimeException('Failed to write OAuth data to: ' . $path);
+		}
 		chmod($path, 0600);
 	}
 

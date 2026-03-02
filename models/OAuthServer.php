@@ -273,7 +273,7 @@ class OAuthServer
 		}
 
 		// Validate password
-		if (!hash_equals($this->authPassword, $password))
+		if (!password_verify($password, $this->authPassword))
 		{
 			$client = $this->storage->getClient($clientId);
 			$clientName = $client['client_name'] ?? 'Unknown Client';

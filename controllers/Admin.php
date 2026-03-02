@@ -103,7 +103,7 @@ class Admin extends Base
 		$config->oauthEnabled = ($vars->oauthEnabled === 'Y');
 		if (isset($vars->oauthPassword) && trim($vars->oauthPassword) !== '')
 		{
-			$config->oauthPassword = trim($vars->oauthPassword);
+			$config->oauthPassword = password_hash(trim($vars->oauthPassword), PASSWORD_DEFAULT);
 		}
 
 		// 로그 설정

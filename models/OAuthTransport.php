@@ -49,7 +49,7 @@ class OAuthTransport implements ServerTransportInterface, LoggerAwareInterface, 
 		private ?array $sslContext = null,
 		bool $enableJsonResponse = true,
 		bool $stateless = false,
-		OAuthServer $oauthServer = null,
+		OAuthServer $oauthServer,
 		?EventStoreInterface $eventStore = null
 	) {
 		$this->logger = new NullLogger();
