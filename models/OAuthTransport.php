@@ -43,13 +43,13 @@ class OAuthTransport implements ServerTransportInterface, LoggerAwareInterface, 
 	private bool $closing = false;
 
 	public function __construct(
+		OAuthServer $oauthServer,
 		private readonly string $host = '127.0.0.1',
 		private readonly int $port = 8080,
 		private string $mcpPath = '/mcp',
 		private ?array $sslContext = null,
 		bool $enableJsonResponse = true,
 		bool $stateless = false,
-		OAuthServer $oauthServer,
 		?EventStoreInterface $eventStore = null
 	) {
 		$this->logger = new NullLogger();

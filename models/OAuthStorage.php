@@ -39,6 +39,33 @@ class OAuthStorage
 		return $clients[$clientId] ?? null;
 	}
 
+	public function getAllClients(): array
+	{
+		return $this->loadJson('clients.json');
+	}
+
+	public function deleteClient(string $clientId): void
+	{
+		$clients = $this->loadJson('clients.json');
+		unset($clients[$clientId]);
+		$this->saveJson('clients.json', $clients);
+	}
+
+	public function regenerateClientSecret(string $clientId): ?string
+	{
+		$clients = $this->loadJson('clients.json');
+		if (!isset($clients[$clientId]))
+		{
+			return null;
+		}
+
+		$newSecret = bin2hex(random_bytes(32));
+		$clients[$clientId]['client_secret'] = password_hash($newSecret, PASSWORD_BCRYPT);
+		$this->saveJson('clients.json', $clients);
+
+		return $newSecret;
+	}
+
 	// ========== Authorization Codes ==========
 
 	public function saveAuthorizationCode(string $code, array $data): void

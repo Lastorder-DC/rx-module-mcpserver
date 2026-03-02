@@ -141,6 +141,45 @@
 				@endif
 			</div>
 		</div>
+
+		<div class="x_control-group">
+			<label class="x_control-label">{{ $lang->mcpserver_oauth_clients_title }}</label>
+			<div class="x_controls">
+				@if (!empty($oauthClients))
+				<table class="x_table" style="width:100%; border-collapse:collapse; margin-top:5px;">
+					<thead>
+						<tr>
+							<th style="text-align:left; padding:8px; border-bottom:2px solid #ddd;">{{ $lang->mcpserver_oauth_client_name }}</th>
+							<th style="text-align:left; padding:8px; border-bottom:2px solid #ddd;">{{ $lang->mcpserver_oauth_client_id }}</th>
+							<th style="text-align:left; padding:8px; border-bottom:2px solid #ddd;">{{ $lang->mcpserver_oauth_client_grant_types }}</th>
+							<th style="text-align:left; padding:8px; border-bottom:2px solid #ddd;">{{ $lang->mcpserver_oauth_client_auth_method }}</th>
+							<th style="text-align:left; padding:8px; border-bottom:2px solid #ddd;">{{ $lang->mcpserver_oauth_client_created_at }}</th>
+							<th style="text-align:left; padding:8px; border-bottom:2px solid #ddd;">{{ $lang->mcpserver_oauth_client_actions }}</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach ($oauthClients as $client)
+						<tr>
+							<td style="padding:8px; border-bottom:1px solid #eee;">{{ $client['client_name'] ?? '-' }}</td>
+							<td style="padding:8px; border-bottom:1px solid #eee;"><code>{{ $client['client_id'] }}</code></td>
+							<td style="padding:8px; border-bottom:1px solid #eee;">{{ implode(', ', $client['grant_types'] ?? []) }}</td>
+							<td style="padding:8px; border-bottom:1px solid #eee;">{{ $client['token_endpoint_auth_method'] ?? 'none' }}</td>
+							<td style="padding:8px; border-bottom:1px solid #eee;">{{ isset($client['created_at']) ? date('Y-m-d H:i', $client['created_at']) : '-' }}</td>
+							<td style="padding:8px; border-bottom:1px solid #eee;">
+								@if (!empty($client['client_secret']))
+								<button type="button" class="x_btn x_btn-sm" onclick="mcpserverRegenerateSecret('{{ $client['client_id'] }}')">{{ $lang->mcpserver_oauth_regenerate_secret }}</button>
+								@endif
+								<button type="button" class="x_btn x_btn-sm x_btn-danger" onclick="mcpserverDeleteClient('{{ $client['client_id'] }}')">{{ $lang->mcpserver_oauth_delete_client }}</button>
+							</td>
+						</tr>
+						@endforeach
+					</tbody>
+				</table>
+				@else
+				<p>{{ $lang->mcpserver_oauth_no_clients }}</p>
+				@endif
+			</div>
+		</div>
 	</section>
 
 	<section class="section">
@@ -204,3 +243,23 @@
 	</div>
 
 </form>
+
+<script>
+function mcpserverRegenerateSecret(clientId) {
+	if (!confirm('{{ $lang->mcpserver_oauth_regenerate_secret_confirm }}')) return;
+	exec_json('procMcpserverAdminRegenerateClientSecret', { client_id: clientId }, function(res) {
+		if (res.error == 0 && res.client_secret) {
+			alert('{{ $lang->mcpserver_oauth_new_secret }}' + ':\n\n' + res.client_secret + '\n\n' + '{{ $lang->mcpserver_oauth_new_secret_warning }}');
+			location.reload();
+		}
+	});
+}
+function mcpserverDeleteClient(clientId) {
+	if (!confirm('{{ $lang->mcpserver_oauth_delete_client_confirm }}')) return;
+	exec_json('procMcpserverAdminDeleteOAuthClient', { client_id: clientId, success_return_url: location.href }, function(res) {
+		if (res.error == 0) {
+			location.reload();
+		}
+	});
+}
+</script>

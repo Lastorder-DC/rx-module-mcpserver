@@ -8,6 +8,7 @@ use Rhymix\Framework\Exception;
 use Rhymix\Framework\Storage;
 use Rhymix\Framework\Request;
 use Rhymix\Modules\Mcpserver\Models\Config as ConfigModel;
+use Rhymix\Modules\Mcpserver\Models\OAuthStorage;
 use BaseObject;
 use Context;
 use Psr\Log\LogLevel;
@@ -42,8 +43,25 @@ class Admin extends Base
 		// 현재 설정 상태 불러오기
 		$config = ConfigModel::getConfig();
 
+		// OAuth 클라이언트 목록 불러오기
+		$oauthClients = [];
+		try
+		{
+			$storagePath = \RX_BASEDIR . 'files/mcpserver/oauth/';
+			if (is_dir($storagePath))
+			{
+				$storage = new OAuthStorage();
+				$oauthClients = $storage->getAllClients();
+			}
+		}
+		catch (\Throwable $e)
+		{
+			// OAuth storage not available
+		}
+
 		// Context에 세팅
 		Context::set('config', $config);
+		Context::set('oauthClients', $oauthClients);
 
 		// 스킨 파일 지정
 		$this->setTemplateFile('config');
@@ -180,5 +198,57 @@ class Admin extends Base
 
 		curl_close($ch);
 		return new BaseObject();
+	}
+
+	public function procMcpserverAdminDeleteOAuthClient()
+	{
+		$clientId = Context::get('client_id');
+		if (empty($clientId))
+		{
+			return new BaseObject(-1, 'msg_invalid_request');
+		}
+
+		try
+		{
+			$storage = new OAuthStorage();
+			$client = $storage->getClient($clientId);
+			if ($client === null)
+			{
+				return new BaseObject(-1, 'msg_invalid_request');
+			}
+			$storage->deleteClient($clientId);
+		}
+		catch (\Throwable $e)
+		{
+			return new BaseObject(-1, $e->getMessage());
+		}
+
+		$this->setMessage('success_deleted');
+		$this->setRedirectUrl(Context::get('success_return_url'));
+	}
+
+	public function procMcpserverAdminRegenerateClientSecret()
+	{
+		$clientId = Context::get('client_id');
+		if (empty($clientId))
+		{
+			return new BaseObject(-1, 'msg_invalid_request');
+		}
+
+		try
+		{
+			$storage = new OAuthStorage();
+			$newSecret = $storage->regenerateClientSecret($clientId);
+			if ($newSecret === null)
+			{
+				return new BaseObject(-1, 'msg_invalid_request');
+			}
+			$this->add('client_secret', $newSecret);
+			$this->setMessage('success_updated');
+		}
+		catch (\Throwable $e)
+		{
+			return new BaseObject(-1, $e->getMessage());
+		}
 	}
 }

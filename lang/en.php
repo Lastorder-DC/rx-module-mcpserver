@@ -71,6 +71,24 @@ $lang->mcpserver_oauth_password_placeholder = 'Enter to change password';
 $lang->mcpserver_oauth_password_help = 'Password used for the OAuth authorization page. MCP clients will need to enter this password during the authorization flow.';
 $lang->mcpserver_oauth_password_required = 'OAuth 2.0 is enabled but no authorization password is set. Please set a password.';
 
+// OAuth client list
+$lang->mcpserver_oauth_clients_title = 'Registered OAuth Clients';
+$lang->mcpserver_oauth_no_clients = 'No OAuth clients registered.';
+$lang->mcpserver_oauth_client_id = 'Client ID';
+$lang->mcpserver_oauth_client_name = 'Client Name';
+$lang->mcpserver_oauth_client_grant_types = 'Grant Types';
+$lang->mcpserver_oauth_client_auth_method = 'Auth Method';
+$lang->mcpserver_oauth_client_created_at = 'Created';
+$lang->mcpserver_oauth_client_actions = 'Actions';
+$lang->mcpserver_oauth_regenerate_secret = 'Regenerate Secret';
+$lang->mcpserver_oauth_regenerate_secret_confirm = 'Are you sure you want to regenerate the client secret? The existing secret will no longer be valid.';
+$lang->mcpserver_oauth_delete_client = 'Delete Client';
+$lang->mcpserver_oauth_delete_client_confirm = 'Are you sure you want to delete this OAuth client? This action cannot be undone.';
+$lang->mcpserver_oauth_new_secret = 'New Client Secret';
+$lang->mcpserver_oauth_new_secret_warning = 'This secret will not be shown again. Please save it in a secure location.';
+$lang->mcpserver_oauth_has_secret = 'Yes';
+$lang->mcpserver_oauth_no_secret = 'None';
+
 $lang->mcpserver_section_log = 'Log Configuration';
 $lang->mcpserver_log_output = 'Log Output';
 $lang->mcpserver_log_help = 'Enables log output through PSR-3 compatible logger. Useful for development and debugging, can be disabled in production for performance.';
