@@ -188,6 +188,62 @@ class BoardElements extends MCPServerInterface
     }
 
     /**
+     * Retrieves comments from multiple documents by their document SRLs.
+     * Returns all comments from up to 100 documents at once including their content.
+     * 
+     * @param array $document_srls Array of document SRLs to retrieve comments from (max 100)
+     * @return array Comment list with total_count and comments
+     */
+    #[McpTool(name: 'get_comments_by_srls')]
+    public function getCommentsBySrls(
+        #[Schema(type: 'array', items: ['type' => 'integer'], minItems: 1, maxItems: 100)]
+        array $document_srls
+    ): array {
+        if (empty($document_srls)) {
+            throw new \Exception('document_srls must not be empty.');
+        }
+
+        if (count($document_srls) > 100) {
+            throw new \Exception('document_srls must not exceed 100 items.');
+        }
+
+        $args = new \stdClass();
+        $args->document_srls = array_map('intval', $document_srls);
+
+        $output = executeQueryArray('mcpserver.getCommentsByDocumentSrls', $args);
+
+        if (!$output->toBool()) {
+            throw new \Exception('Cannot retrieve comments: ' . $output->getMessage());
+        }
+
+        $comments = [];
+        if ($output->data) {
+            foreach ($output->data as $comment) {
+                $comments[] = [
+                    'comment_srl' => $comment->comment_srl,
+                    'document_srl' => $comment->document_srl,
+                    'parent_srl' => $comment->parent_srl,
+                    'depth' => $comment->depth ?? 0,
+                    'content' => $comment->content,
+                    'nick_name' => $comment->nick_name,
+                    'member_srl' => $comment->member_srl,
+                    'voted_count' => $comment->voted_count,
+                    'blamed_count' => $comment->blamed_count,
+                    'regdate' => $comment->regdate,
+                    'last_update' => $comment->last_update,
+                    'status' => $comment->status,
+                    'is_secret' => $comment->is_secret,
+                ];
+            }
+        }
+
+        return [
+            'total_count' => count($comments),
+            'comments' => $comments,
+        ];
+    }
+
+    /**
      * Retrieves a paginated list of comments for a specific document.
      * 
      * @param int $document_srl Document SRL to retrieve comments from
