@@ -47,6 +47,7 @@ class BoardElements extends MCPServerInterface
         $args->page = $page;
         $args->list_count = $list_count;
         $args->page_count = $page_count;
+        $args->statusList = ['PUBLIC'];
 
         $output = executeQueryArray('document.getDocumentList', $args);
 
@@ -112,6 +113,10 @@ class BoardElements extends MCPServerInterface
 
         $document = $output->data;
 
+        if ($document->status !== 'PUBLIC') {
+            throw new \Exception('Document not found: ' . $document_srl);
+        }
+
         return [
             'document_srl' => $document->document_srl,
             'module_srl' => $document->module_srl,
@@ -163,6 +168,9 @@ class BoardElements extends MCPServerInterface
         $documents = [];
         if ($output->data) {
             foreach ($output->data as $document) {
+                if ($document->status !== 'PUBLIC') {
+                    continue;
+                }
                 $documents[] = [
                     'document_srl' => $document->document_srl,
                     'module_srl' => $document->module_srl,
@@ -221,6 +229,9 @@ class BoardElements extends MCPServerInterface
         $comments = [];
         if ($output->data) {
             foreach ($output->data as $comment) {
+                if ($comment->is_secret === 'Y') {
+                    continue;
+                }
                 $comments[] = [
                     'comment_srl' => $comment->comment_srl,
                     'document_srl' => $comment->document_srl,
@@ -234,7 +245,6 @@ class BoardElements extends MCPServerInterface
                     'regdate' => $comment->regdate,
                     'last_update' => $comment->last_update,
                     'status' => $comment->status,
-                    'is_secret' => $comment->is_secret,
                 ];
             }
         }
@@ -283,6 +293,9 @@ class BoardElements extends MCPServerInterface
         $comments = [];
         if ($output->data) {
             foreach ($output->data as $comment) {
+                if ($comment->is_secret === 'Y') {
+                    continue;
+                }
                 $comments[] = [
                     'comment_srl' => $comment->comment_srl,
                     'parent_srl' => $comment->parent_srl,
@@ -294,7 +307,6 @@ class BoardElements extends MCPServerInterface
                     'regdate' => $comment->regdate,
                     'last_update' => $comment->last_update,
                     'status' => $comment->status,
-                    'is_secret' => $comment->is_secret,
                 ];
             }
         }
