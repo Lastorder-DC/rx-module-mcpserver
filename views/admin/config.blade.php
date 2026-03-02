@@ -295,16 +295,15 @@
 <script>
 function mcpserverRegenerateSecret(clientId) {
 	if (!confirm('{{ $lang->mcpserver_oauth_regenerate_secret_confirm }}')) return;
-	exec_json('procMcpserverAdminRegenerateClientSecret', { client_id: clientId }, function(res) {
+	exec_json('mcpserver.procMcpserverAdminRegenerateClientSecret', { client_id: clientId }, function(res) {
 		if (res.error == 0 && res.client_secret) {
 			alert('{{ $lang->mcpserver_oauth_new_secret }}' + ':\n\n' + res.client_secret + '\n\n' + '{{ $lang->mcpserver_oauth_new_secret_warning }}');
-			location.reload();
 		}
 	});
 }
 function mcpserverDeleteClient(clientId) {
 	if (!confirm('{{ $lang->mcpserver_oauth_delete_client_confirm }}')) return;
-	exec_json('procMcpserverAdminDeleteOAuthClient', { client_id: clientId, success_return_url: location.href }, function(res) {
+	exec_json('mcpserver.procMcpserverAdminDeleteOAuthClient', { client_id: clientId, success_return_url: location.href }, function(res) {
 		if (res.error == 0) {
 			location.reload();
 		}
@@ -323,7 +322,7 @@ function mcpserverRegisterClient() {
 	if (document.getElementById('oauth_grant_refresh_token').checked) grantTypes.push('refresh_token');
 	var authMethod = document.getElementById('oauth_auth_method').value;
 
-	exec_json('procMcpserverAdminRegisterOAuthClient', {
+	exec_json('mcpserver.procMcpserverAdminRegisterOAuthClient', {
 		oauth_client_name: clientName,
 		oauth_redirect_uris: redirectUris,
 		oauth_grant_types: grantTypes,
@@ -336,7 +335,6 @@ function mcpserverRegisterClient() {
 				msg += '\nClient Secret: ' + res.client_secret + '\n\n' + '{{ $lang->mcpserver_oauth_new_secret_warning }}';
 			}
 			alert(msg);
-			location.reload();
 		}
 	});
 }
